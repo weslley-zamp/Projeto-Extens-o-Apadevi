@@ -1,0 +1,5 @@
+casa
+braile
+teclado
+palavra
+estudo
