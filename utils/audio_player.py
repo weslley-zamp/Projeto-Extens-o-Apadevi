@@ -6,3 +6,4 @@ def play_audio(audio_bytesio):
     mixer.music.play()
     while mixer.music.get_busy():
         pass
+""" Carrega as palavras de tts_service para falar para o jogador """

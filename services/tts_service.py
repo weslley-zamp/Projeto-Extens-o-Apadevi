@@ -7,3 +7,4 @@ def text_to_speech(text):
     tts.write_to_fp(mp3_fp)
     mp3_fp.seek(0)
     return mp3_fp
+""" Faz com que não seja armazenado dentro da pasta os arquivos MP3, fazendo com que sejam rodados uma vez só"""

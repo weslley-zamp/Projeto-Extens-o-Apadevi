@@ -45,5 +45,5 @@ def on_press(key):
         typed_word = ""  # Reseta para tentar de novo
         current_index = 0
 
-with keyboard.Listener(on_press=on_press) as listener:
-    listener.join()
+with keyboard.Listener(on_press=on_press) as listener: #responsvel por escutar o teclado.
+    listener.join() 

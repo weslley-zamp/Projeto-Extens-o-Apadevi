@@ -6,3 +6,4 @@ def compare_words(correct, typed):
         if correct[i] != typed[i]:
             errors.append((i, typed[i], correct[i]))
     return errors
+""" Compara se a palavra digitada está igual a palavra falada (pega aleatoriamente da lista) """
