@@ -398,15 +398,19 @@ def main():
     sys.excepthook = excepthook
     
     root = tk.Tk()
+    game = None  # Inicializa a variável fora do bloco try
+    
     try:
         game = TypingGame(root)
         root.mainloop()
     except Exception as e:
         print(f"Erro fatal: {e}")
-        root.destroy()
+        if root.winfo_exists():  # Verifica se a janela ainda existe
+            root.destroy()
     finally:
-        if game.listener:
+        if game is not None and hasattr(game, 'listener') and game.listener is not None:
             game.listener.stop()
+
 
 if __name__ == "__main__":
     main()
