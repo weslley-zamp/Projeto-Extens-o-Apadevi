@@ -2,4 +2,5 @@
 Aqui ele vai buscar todas as bibliotecas que serão utilizadas
 pip install -r requirements.txt
 
-
+py -m venv venv    
+.\venv\Scripts\activate
