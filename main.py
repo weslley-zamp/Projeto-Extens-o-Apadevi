@@ -226,13 +226,12 @@ class TypingGame:
 
     def on_press(self, key):
         try:
-            # Se estiver na tela de estatísticas, reinicia o jogo
             if not self.game_frame.winfo_ismapped():
                 self.start_new_game()
                 return
                 
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
-            
+
             # Trata backspace/delete
             if key == keyboard.Key.backspace or key == keyboard.Key.delete:
                 if len(self.typed_word) > 0:
@@ -242,7 +241,9 @@ class TypingGame:
                         threading.Thread(target=SoundPlayer.play_backspace, daemon=True).start()
                     self.update_ui()
                 return
-                
+            if key == keyboard.Key.esc:
+                self.root.destroy()
+
             try:
                 char = key.char
             except AttributeError:

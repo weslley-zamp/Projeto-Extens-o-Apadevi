@@ -1,6 +1,4 @@
------------ rodar pip instal -------------
-Aqui ele vai buscar todas as bibliotecas que serão utilizadas
-pip install -r requirements.txt
+$env:Path += ";C:\\Users\\{User}\\AppData\\Local\\Programs\\Python\\Python313\\Scripts"
 
-py -m venv venv    
-.\venv\Scripts\activate
+PyInstaller main.spec
+

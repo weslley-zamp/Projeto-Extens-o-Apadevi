@@ -51,7 +51,6 @@ garfo
 colher
 prato
 copo
-xicara
 panela
 frigideira
 liquidificador
