@@ -7,10 +7,20 @@ from utils.audio_player import play_audio
 from utils.comparator import compare_words
 import winsound
 import threading
-import time
 from datetime import datetime
+import sys
+import os
 
-# Configurações
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        # Running in PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in normal Python environment
+        base_path = os.path.abspath(".")
+
+
 BACKGROUND_COLOR = "#2c3e50"
 CORRECT_COLOR = "#27ae60"
 ERROR_COLOR = "#e74c3c"
@@ -79,7 +89,7 @@ class TypingGame:
         self.start_new_game()
 
     def setup_window(self):
-        self.root.title("Desafio de Digitação - Partidas")
+        self.root.title("KeyEarn")
         self.root.configure(bg=BACKGROUND_COLOR)
         self.root.geometry("1080x720")
         self.center_window()
