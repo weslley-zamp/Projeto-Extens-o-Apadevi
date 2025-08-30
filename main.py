@@ -88,8 +88,7 @@ class TypingGame:
         self.current_level = 1  # Nível padrão (fácil)
         self.accent_buffer = None  # Buffer para acentos
         self.setup_window()
-        self.show_level_selection()  # DEVE VIR ANTES de setup_ui()
-        # REMOVA self.setup_ui() e self.start_new_game() daqui
+        self.show_welcome_screen() 
         self.root.mainloop()
 
     def setup_window(self):
@@ -156,13 +155,24 @@ class TypingGame:
         self.progress_label.pack()
 
         # Botões
-        self.restart_btn = ttk.Button(
+        self.back_btn = ttk.Button(
             self.game_frame,
-            text="↻ Reiniciar Partida",
-            command=self.start_new_game,
+            text="← Voltar para Seleção de Nível",
+            command=self.return_to_level_selection,
             style="TButton"
         )
-        self.restart_btn.pack(pady=20)
+        self.back_btn.pack(pady=20)
+
+    # Adicione este método para voltar à seleção de nível:
+    def return_to_level_selection(self):
+        """Volta para a tela de seleção de nível"""
+        if self.listener:
+            try:
+                self.listener.stop()
+            except:
+                pass
+        
+        self.show_level_selection()
 
     def start_new_game(self):
         """Inicia uma nova partida com 30 palavras aleatórias"""
@@ -178,8 +188,6 @@ class TypingGame:
             self.stats_frame.pack_forget()
         self.game_frame.pack(expand=True, fill=tk.BOTH)
         
-        # Esconde o frame de estatísticas se estiver visível
-        
         # Reinicia as estatísticas
         self.game_stats = {
             'total_words': WORDS_PER_GAME,
@@ -188,7 +196,7 @@ class TypingGame:
             'start_time': datetime.now(),
             'end_time': None,
             'current_word_index': 0,
-            'level': self.current_level,  # ADICIONE ESTA LINHA
+            'level': self.current_level,
             'words': [get_word_by_level(self.current_level) for _ in range(WORDS_PER_GAME)]
         }
         
@@ -198,6 +206,7 @@ class TypingGame:
         self.accent_buffer = None  # Limpa o buffer de acentos
         self.show_current_word()
         self.setup_keyboard_listener()
+    
     #metódo seleção de nível
     def show_level_selection(self):
         """Mostra a seleção de nível antes de iniciar o jogo"""
@@ -206,6 +215,8 @@ class TypingGame:
             self.game_frame.pack_forget()
         if hasattr(self, 'stats_frame'):
             self.stats_frame.pack_forget()
+        if hasattr(self, 'welcome_frame'):
+            self.welcome_frame.pack_forget()
             
         # Cria frame de seleção de nível
         self.level_frame = tk.Frame(self.root, bg=BACKGROUND_COLOR, padx=PADDING, pady=PADDING)
@@ -236,6 +247,15 @@ class TypingGame:
             )
             btn.pack(pady=10)
             
+        # Botão para voltar
+        self.back_btn = ttk.Button(
+            self.level_frame,
+            text="← Voltar para Tela Inicial",
+            command=self.show_welcome_screen,
+            style="TButton"
+        )
+        self.back_btn.pack(pady=10)
+            
         # Instrução
         ttk.Label(
             self.level_frame,
@@ -247,6 +267,105 @@ class TypingGame:
         
         # Configura listener para seleção por teclado
         self.setup_level_selection_listener()
+        
+        # Narração inicial
+        threading.Thread(
+            target=lambda: play_audio(text_to_speech(
+                "Selecione o nível de dificuldade. Pressione 1 para fácil, 2 para médio, 3 para difícil. " +
+                "Use os botões na tela. Há também um botão para voltar à tela inicial. Pressione ESC para sair."
+            )),
+            daemon=True
+        ).start()
+    
+    def show_welcome_screen(self):
+        """Mostra a tela inicial de boas-vindas"""
+        # Esconde outros frames
+        if hasattr(self, 'game_frame'):
+            self.game_frame.pack_forget()
+        if hasattr(self, 'stats_frame'):
+            self.stats_frame.pack_forget()
+        if hasattr(self, 'level_frame'):
+            self.level_frame.pack_forget()
+        
+        # Cria frame de boas-vindas
+        self.welcome_frame = tk.Frame(self.root, bg=BACKGROUND_COLOR, padx=PADDING, pady=PADDING)
+        self.welcome_frame.pack(expand=True, fill=tk.BOTH)
+        
+        # Título
+        ttk.Label(
+            self.welcome_frame,
+            text="KeyEarn - Aprendizado de Digitação",
+            font=("Helvetica", 28),
+            foreground="white",
+            background=BACKGROUND_COLOR
+        ).pack(pady=30)
+        
+        # Mensagem de boas-vindas
+        ttk.Label(
+            self.welcome_frame,
+            text="Bem-vindo ao programa de aprendizado de digitação para pessoas cegas",
+            font=("Helvetica", 16),
+            foreground="#bdc3c7",
+            background=BACKGROUND_COLOR,
+            wraplength=600
+        ).pack(pady=20)
+        
+        # Botão para iniciar
+        start_btn = ttk.Button(
+            self.welcome_frame,
+            text="▶ Iniciar",
+            command=self.show_level_selection,
+            width=30,
+            style="TButton"
+        )
+        start_btn.pack(pady=20)
+        
+        # Instrução
+        ttk.Label(
+            self.welcome_frame,
+            text="Pressione Enter para iniciar ou ESC para sair",
+            font=("Helvetica", 14),
+            foreground="#bdc3c7",
+            background=BACKGROUND_COLOR
+        ).pack(pady=10)
+        
+        # Configura listener para a tela inicial
+        self.setup_welcome_listener()
+        
+        # Narração de boas-vindas
+        threading.Thread(
+            target=lambda: play_audio(text_to_speech(
+                "Bem-vindo ao KeyEarn, programa de aprendizado de digitação. " +
+                "Pressione Enter para iniciar ou ESC para sair."
+            )),
+            daemon=True
+        ).start()
+
+    def setup_welcome_listener(self):
+        """Configura listener para a tela inicial"""
+        if hasattr(self, 'welcome_listener'):
+            try:
+                self.welcome_listener.stop()
+            except:
+                pass
+        
+        self.welcome_listener = None
+        self.welcome_listener = keyboard.Listener(
+            on_press=self.on_welcome_key_press,
+            suppress=False
+        )
+        self.welcome_listener.start()
+
+    def on_welcome_key_press(self, key):
+        """Trata teclas pressionadas na tela inicial"""
+        try:
+            if key == keyboard.Key.enter or key == keyboard.Key.space:
+                self.show_level_selection()
+            elif key == keyboard.Key.esc:
+                self.root.destroy()
+        except:
+            pass    
+        
     #metodo configurar listner de seleção de nível
     def setup_level_selection_listener(self):
         """Configura listener para seleção de nível por teclado"""
@@ -262,7 +381,8 @@ class TypingGame:
             suppress=False
         )
         self.level_listener.start()
-        #tratar pressionamento de tecla na seleção de nível
+    
+    #tratar pressionamento de tecla na seleção de nível
     def on_level_key_press(self, key):
         """Trata teclas pressionadas durante a seleção de nível"""
         try:
@@ -298,13 +418,13 @@ class TypingGame:
             self.game_frame.pack(expand=True, fill=tk.BOTH)
             
         # Anuncia o nível selecionado
-        threading.Thread(
-            target=lambda: play_audio(text_to_speech(f"Nível {levels[level]} selecionado. Vamos começar!")),
-            daemon=True
-        ).start()
+        def announce_level():
+            play_audio(text_to_speech(f"Nível {levels[level]} selecionado. Pressione ESC para voltar."))
+            # Pequena pausa antes de iniciar o jogo
+            threading.Event().wait(1.5)
+            self.start_new_game()
         
-        # Inicia novo jogo
-        self.start_new_game()
+        threading.Thread(target=announce_level, daemon=True).start()
         
     def show_current_word(self):
         """Mostra a palavra atual e atualiza a interface"""
@@ -317,10 +437,12 @@ class TypingGame:
             )
             
             # Fala a palavra
-            threading.Thread(
-                target=lambda: play_audio(text_to_speech(f"A palavra é: {current_word}")),
-                daemon=True
-            ).start()
+            def speak_word():
+                # Pequena pausa para não cortar a fala anterior
+                threading.Event().wait(0.9)
+                play_audio(text_to_speech(f"A palavra é: {current_word}"))
+            
+            threading.Thread(target=speak_word, daemon=True).start()
         except Exception as e:
             print(f"Erro ao mostrar palavra atual: {e}")
 
@@ -469,7 +591,7 @@ class TypingGame:
             self.game_stats['correct_words'] += 1
             self.root.after(500, self.next_word)
         except Exception as e:
-            print(f"Erro ao lidar com sucesso: {e}")
+            print(f"Erro ao lidar avec sucesso: {e}")
 
     def next_word(self):
         """Avança para a próxima palavra ou finaliza o jogo"""
@@ -494,7 +616,10 @@ class TypingGame:
             
             # Fala para pressionar qualquer tecla para nova partida
             threading.Thread(
-                target=lambda: play_audio(text_to_speech("Partida concluída. Pressione qualquer tecla para uma nova partida.")),
+                target=lambda: play_audio(text_to_speech(
+                    "Partida concluída. Pressione qualquer tecla para uma nova partida " +
+                    "ou use o botão para voltar à seleção de nível."
+                )),
                 daemon=True
             ).start()
             
@@ -548,8 +673,7 @@ class TypingGame:
                 style="Stats.TLabel",
                 justify=tk.LEFT
             ).pack(pady=20)
-        except Exception as e:
-            print(f"Erro ao mostrar estatísticas: {e}")
+            
             # Adiciona botão para voltar à seleção de nível
             ttk.Button(
                 self.stats_frame,
@@ -557,6 +681,9 @@ class TypingGame:
                 command=self.show_level_selection,
                 style="TButton"
             ).pack(pady=10)
+            
+        except Exception as e:
+            print(f"Erro ao mostrar estatísticas: {e}")
 
     def update_ui(self):
         """Atualiza a interface com o progresso atual"""
@@ -592,7 +719,6 @@ def main():
     
     try:
         game = TypingGame(root)
-        # REMOVIDO root.mainloop() daqui - ele será chamado dentro da classe
     except Exception as e:
         print(f"Erro fatal: {e}")
         if root.winfo_exists():  # Verifica se a janela ainda existe
