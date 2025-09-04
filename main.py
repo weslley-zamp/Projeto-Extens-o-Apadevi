@@ -197,7 +197,9 @@ class TypingGame:
             'end_time': None,
             'current_word_index': 0,
             'level': self.current_level,
-            'words': [get_word_by_level(self.current_level) for _ in range(WORDS_PER_GAME)]
+            'words': [get_word_by_level(self.current_level) for _ in range(WORDS_PER_GAME)],
+            'total_chars': 0,
+            'correct_chars': 0
         }
         
         self.typed_word = ""
@@ -253,7 +255,7 @@ class TypingGame:
             text="← Voltar para Tela Inicial",
             command=self.show_welcome_screen,
             style="TButton"
-        )
+            )
         self.back_btn.pack(pady=10)
             
         # Instrução
@@ -427,7 +429,7 @@ class TypingGame:
         threading.Thread(target=announce_level, daemon=True).start()
         
     def show_current_word(self):
-        """Mostra a palavra atual e atualiza a interface"""
+        """Mostra a palavra atual e atualiza la interface"""
         try:
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
             self.word_label.config(text=current_word)
@@ -539,16 +541,19 @@ class TypingGame:
                 self.accent_buffer = None
             else:
                 # Se não há acento no buffer ou a letra não é combinável, adiciona normalmente
-                self.typed_word += char
-                # Se havia um acento no buffer mas não foi combinado, adiciona como caractere normal
                 if self.accent_buffer:
+                    # Se havia um acento no buffer mas não foi combinado, adiciona o acento primeiro
                     self.typed_word += self.accent_buffer
                     self.accent_buffer = None
+                # Adiciona a letra normal
+                self.typed_word += char
                     
             self.current_index = len(self.typed_word) - 1
             
-            # Verifica se a letra está correta
+            # Atualiza estatísticas de caracteres
+            self.game_stats['total_chars'] += 1
             if self.current_index < len(current_word) and self.typed_word[-1] == current_word[self.current_index]:
+                self.game_stats['correct_chars'] += 1
                 if self.sound_enabled:
                     threading.Thread(target=SoundPlayer.play_letter_correct, daemon=True).start()
             else:
@@ -559,7 +564,14 @@ class TypingGame:
             
             # Verifica se completou a palavra
             if len(self.typed_word) == len(current_word):
-                if compare_words(current_word, self.typed_word) is None:  # Se não houver erros
+                # Verifica se a palavra está completamente correta
+                is_correct = True
+                for i in range(len(current_word)):
+                    if i >= len(self.typed_word) or self.typed_word[i] != current_word[i]:
+                        is_correct = False
+                        break
+                
+                if is_correct:
                     self.handle_success()
                 else:
                     self.handle_error()
@@ -591,7 +603,7 @@ class TypingGame:
             self.game_stats['correct_words'] += 1
             self.root.after(500, self.next_word)
         except Exception as e:
-            print(f"Erro ao lidar avec sucesso: {e}")
+            print(f"Erro ao lidar com sucesso: {e}")
 
     def next_word(self):
         """Avança para a próxima palavra ou finaliza o jogo"""
@@ -614,12 +626,9 @@ class TypingGame:
             self.game_stats['end_time'] = datetime.now()
             self.show_game_stats()
             
-            # Fala para pressionar qualquer tecla para nova partida
+            # Fala as estatísticas
             threading.Thread(
-                target=lambda: play_audio(text_to_speech(
-                    "Partida concluída. Pressione qualquer tecla para uma nova partida " +
-                    "ou use o botão para voltar à seleção de nível."
-                )),
+                target=self.announce_stats,
                 daemon=True
             ).start()
             
@@ -628,13 +637,45 @@ class TypingGame:
         except Exception as e:
             print(f"Erro ao finalizar jogo: {e}")
 
+    def announce_stats(self):
+        """Anuncia as estatísticas do jogo em áudio"""
+        # Calcula o tempo total
+        total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
+        minutes = total_time / 60
+        wpm = self.game_stats['correct_chars'] / 5 / minutes if minutes > 0 else 0  # WPM baseado em caracteres (5 chars = 1 palavra)
+        
+        # Nome do nível
+        levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
+        level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
+        
+        # Calcula precisão
+        accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
+        
+        # Cria o texto para a narração
+        stats_text = (
+            f"Partida concluída! "
+            f"Nível: {level_name}. "
+            f"Palavras corretas: {self.game_stats['correct_words']} de {self.game_stats['total_words']}. "
+            f"Palavras incorretas: {self.game_stats['incorrect_words']}. "
+            f"Tempo total: {int(total_time)} segundos. "
+            f"Velocidade: {int(wpm)} palavras por minuto. "
+            f"Precisão: {int(accuracy)} por cento. "
+            f"Pressione qualquer tecla para uma nova partida ou use o botão para voltar à seleção de nível."
+        )
+        
+        # Reproduz o áudio
+        play_audio(text_to_speech(stats_text))
+
     def show_game_stats(self):
         """Mostra as estatísticas finais do jogo"""
         try:
             # Calcula o tempo total
             total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
             minutes = total_time / 60
-            wpm = self.game_stats['correct_words'] / minutes if minutes > 0 else 0
+            wpm = self.game_stats['correct_chars'] / 5 / minutes if minutes > 0 else 0  # WPM baseado em caracteres
+            
+            # Calcula precisão
+            accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
             
             # Nome do nível
             levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
@@ -663,7 +704,9 @@ class TypingGame:
                 f"Palavras corretas: {self.game_stats['correct_words']}/{self.game_stats['total_words']}\n"
                 f"Palavras incorretas: {self.game_stats['incorrect_words']}\n"
                 f"Tempo total: {total_time:.1f} segundos\n"
-                f"Velocidade: {wpm:.1f} palavras por minuto\n\n"
+                f"Velocidade: {wpm:.1f} palavras por minuto\n"
+                f"Precisão: {accuracy:.1f}%\n"
+                f"Caracteres: {self.game_stats['correct_chars']}/{self.game_stats['total_chars']}\n\n"
                 "Pressione qualquer tecla para uma nova partida"
             )
             
