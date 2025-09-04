@@ -1,4 +1,4 @@
-('D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\build\\main\\PYZ-00.pyz',
+('D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\build\\main\\PYZ-00.pyz',
  [('__future__',
    'C:\\Program '
    'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\__future__.py',
@@ -106,7 +106,7 @@
    'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\codeop.py',
    'PYMODULE'),
   ('config',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\config.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\config.py',
    'PYMODULE'),
   ('contextlib',
    'C:\\Program '
@@ -265,7 +265,7 @@
    'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\fractions.py',
    'PYMODULE'),
   ('free_play_game',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\free_play_game.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\free_play_game.py',
    'PYMODULE'),
   ('ftplib',
    'C:\\Program '
@@ -967,10 +967,10 @@
    'PYMODULE'),
   ('services', '-', 'PYMODULE'),
   ('services.tts_service',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\services\\tts_service.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\services\\tts_service.py',
    'PYMODULE'),
   ('services.word_generator',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\services\\word_generator.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\services\\word_generator.py',
    'PYMODULE'),
   ('shlex',
    'C:\\Program '
@@ -1070,6 +1070,9 @@
   ('typing',
    'C:\\Program '
    'Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\typing.py',
+   'PYMODULE'),
+  ('typing_game',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\typing_game.py',
    'PYMODULE'),
   ('urllib',
    'C:\\Program '
@@ -1201,10 +1204,10 @@
    'PYMODULE'),
   ('utils', '-', 'PYMODULE'),
   ('utils.audio_player',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\utils\\audio_player.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\utils\\audio_player.py',
    'PYMODULE'),
   ('utils.comparator',
-   'D:\\Arquivos\\Alemao\\Desktop\\Projeto-Extens-o-Apadevi\\utils\\comparator.py',
+   'D:\\Arquivos\\Alemao\\Desktop\\NHÁ\\Projeto-Extens-o-Apadevi\\utils\\comparator.py',
    'PYMODULE'),
   ('webbrowser',
    'C:\\Program '
