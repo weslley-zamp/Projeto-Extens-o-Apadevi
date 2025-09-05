@@ -1,16 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-block_cipher = None  # Adicionando esta linha que estava faltando
+block_cipher = None
 
 a = Analysis(
     ['main.py'],
-    pathex=['C:\\Fontes\\Aplicacoes\\Projeto-Extens-o-Apadevi'],  # Adicionando o caminho absoluto
+    pathex=['C:\\Fontes\\Aplicacoes\\Projeto-Extens-o-Apadevi'],
     binaries=[],
     datas=[
-        ('words\\wordlist.txt', 'words'),  # Usando barras invertidas para Windows
-        ('keyboard.ico', '.'),  # Corrigindo de .ico para .lco
-        ('services\\*.py', 'services'),
-        ('utils\\*.py', 'utils')
+        ('words\\wordlist.txt', 'words'),
+        ('keyboard.ico', '.'),
+        ('services', 'services'),
+        ('utils', 'utils'),
+        ('config.py', '.'), # Garante que o arquivo de configuração é incluído
     ],
     hiddenimports=[
         'pynput.keyboard._win32',
@@ -21,15 +22,13 @@ a = Analysis(
         'pygame',
         'gtts',
         'pyttsx3',
-        'winsound'  # Adicionando winsound que é usado no código
+        'winsound',
+        'pynput.keyboard', # Adicione esta linha para garantir que o módulo principal seja importado
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
     optimize=0,
 )
@@ -41,29 +40,18 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='main',
+    name='TypingGame', # Mude o nome do executável para algo mais descritivo
     bootloader_ignore_signals=False,
-    debug=False,  # Mude para True
+    debug=False,
     strip=False,
-    upx=False,  # Desative UPX para facilitar debugging
+    upx=True, # Mantenha o UPX ativado para menor tamanho do arquivo final
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=False, # Mantenha em 'False' para o aplicativo não ter uma janela de console
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='keyboard.ico'  # Adicione esta linha se quiser um ícone
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='main'
+    icon='keyboard.ico'
 )
