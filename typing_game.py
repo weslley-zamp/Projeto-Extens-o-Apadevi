@@ -1,4 +1,3 @@
-# typing_game.py
 import tkinter as tk
 from tkinter import font, ttk
 from pynput import keyboard
@@ -11,8 +10,8 @@ import threading
 from datetime import datetime
 import sys
 import os
+import unicodedata
 
-# Importa as configurações do novo arquivo config.py
 from config import (
     SoundPlayer,
     BACKGROUND_COLOR,
@@ -24,6 +23,7 @@ from config import (
     WORDS_PER_GAME
 )
 
+
 class TypingGame:
     def __init__(self, root, switch_to_main_menu, level):
         self.root = root
@@ -32,8 +32,9 @@ class TypingGame:
         self.sound_enabled = self.check_sound_support()
         self.listener = None
         self.last_key_time = 0
-        self.game_in_progress = False # Novo atributo para controlar o estado do jogo
-        
+        self.game_in_progress = False
+        self.accent_buffer = None
+
         self.setup_ui()
         self.start_new_game()
 
@@ -60,7 +61,7 @@ class TypingGame:
         self.game_frame.pack(expand=True, fill=tk.BOTH)
 
         self.stats_frame = tk.Frame(self.main_frame, bg=BACKGROUND_COLOR)
-        
+
         self.word_label = ttk.Label(
             self.game_frame,
             text="",
@@ -99,10 +100,10 @@ class TypingGame:
                 self.listener.stop()
             except:
                 pass
-        
+
         self.stats_frame.pack_forget()
         self.game_frame.pack(expand=True, fill=tk.BOTH)
-        
+
         self.game_stats = {
             'total_words': WORDS_PER_GAME,
             'correct_words': 0,
@@ -111,13 +112,18 @@ class TypingGame:
             'end_time': None,
             'current_word_index': 0,
             'words': [get_word_by_level(self.current_level) for _ in range(WORDS_PER_GAME)],
-            'level': self.current_level
+            'level': self.current_level,
+            'total_chars': 0,
+            'correct_chars': 0,
+            'word_completed': False,
+            'total_words_typed': 0  # Nova métrica: total de palavras digitadas
         }
-        
+
         self.typed_word = ""
         self.current_index = 0
         self.last_key_time = 0
-        self.game_in_progress = True # O jogo está em progresso
+        self.accent_buffer = None
+        self.game_in_progress = True
         self.show_current_word()
         self.setup_keyboard_listener()
 
@@ -129,7 +135,7 @@ class TypingGame:
             self.progress_label.config(
                 text=f"Palavra {self.game_stats['current_word_index'] + 1}/{self.game_stats['total_words']}"
             )
-            
+
             threading.Thread(
                 target=lambda: play_audio(text_to_speech(f"A palavra é: {current_word}")),
                 daemon=True
@@ -143,7 +149,7 @@ class TypingGame:
                 self.listener.stop()
             except:
                 pass
-        
+
         self.listener = None
         self.listener = keyboard.Listener(
             on_press=self.on_press,
@@ -160,8 +166,34 @@ class TypingGame:
             except:
                 pass
 
+    def combine_accent(self, accent, vowel):
+        accent_map = {
+            '´': {
+                'a': 'á', 'e': 'é', 'i': 'í', 'o': 'ó', 'u': 'ú',
+                'A': 'Á', 'E': 'É', 'I': 'Í', 'O': 'Ó', 'U': 'Ú'
+            },
+            '`': {
+                'a': 'à', 'e': 'è', 'i': 'ì', 'o': 'ò', 'u': 'ù',
+                'A': 'À', 'E': 'È', 'I': 'Ì', 'O': 'Ò', 'U': 'Ù'
+            },
+            '^': {
+                'a': 'â', 'e': 'ê', 'i': 'î', 'o': 'ô', 'u': 'û',
+                'A': 'Â', 'E': 'Ê', 'I': 'Î', 'O': 'Ô', 'U': 'Û'
+            },
+            '~': {
+                'a': 'ã', 'o': 'õ', 'n': 'ñ',
+                'A': 'Ã', 'O': 'Õ', 'N': 'Ñ'
+            },
+            '"': {
+                'u': 'ü', 'U': 'Ü'
+            }
+        }
+
+        if accent in accent_map and vowel in accent_map[accent]:
+            return accent_map[accent][vowel]
+        return vowel
+
     def on_press(self, key):
-        # Lógica para o final do jogo
         if not self.game_in_progress:
             if key == keyboard.Key.esc:
                 self.stop_listener()
@@ -171,9 +203,8 @@ class TypingGame:
                 self.stop_listener()
                 self.start_new_game()
                 return
-            return # Sai da função se o jogo não estiver em progresso
+            return
 
-        # Lógica normal de digitação
         try:
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
 
@@ -184,6 +215,7 @@ class TypingGame:
                     if self.sound_enabled:
                         threading.Thread(target=SoundPlayer.play_backspace, daemon=True).start()
                     self.update_ui()
+                self.accent_buffer = None
                 return
 
             if key == keyboard.Key.esc:
@@ -194,38 +226,62 @@ class TypingGame:
                 char = key.char
             except AttributeError:
                 if key == keyboard.Key.space:
-                    if len(self.typed_word) == len(current_word) and compare_words(current_word, self.typed_word) is None:
-                        self.handle_success()
+                    # Verificar se a palavra está completa
+                    if len(self.typed_word) == len(current_word) and not self.game_stats['word_completed']:
+                        result = compare_words(current_word, self.typed_word)
+                        if result is None:
+                            self.handle_success()
+                        else:
+                            self.handle_error()
                     else:
+                        # Palavra incompleta - tratar como erro
                         self.handle_error()
+                return
+
+            accents = ['´', '`', '^', '~', '"']
+            if char in accents:
+                self.accent_buffer = char
                 return
 
             if len(self.typed_word) >= len(current_word):
                 if self.sound_enabled:
                     threading.Thread(target=SoundPlayer.play_error, daemon=True).start()
                 return
-                
-            self.typed_word += char
+
+            if self.accent_buffer and char in 'aeiouAEIOUunUN':
+                combined_char = self.combine_accent(self.accent_buffer, char)
+                self.typed_word += combined_char
+                self.accent_buffer = None
+            else:
+                if self.accent_buffer:
+                    self.typed_word += self.accent_buffer
+                    self.accent_buffer = None
+                self.typed_word += char
+
             self.current_index = len(self.typed_word) - 1
-            
-            if self.current_index < len(current_word) and char == current_word[self.current_index]:
+
+            self.game_stats['total_chars'] += 1
+            if self.current_index < len(current_word) and self.typed_word[-1] == current_word[self.current_index]:
+                self.game_stats['correct_chars'] += 1
                 if self.sound_enabled:
                     threading.Thread(target=SoundPlayer.play_letter_correct, daemon=True).start()
             else:
                 if self.sound_enabled:
                     threading.Thread(target=SoundPlayer.play_error, daemon=True).start()
-            
+
             self.update_ui()
-            
-            if len(self.typed_word) == len(current_word):
-                if compare_words(current_word, self.typed_word) is None:
+
+            # Verificar se a palavra está completa e ainda não foi processada
+            if len(self.typed_word) == len(current_word) and not self.game_stats['word_completed']:
+                result = compare_words(current_word, self.typed_word)
+                if result is None:
                     self.handle_success()
                 else:
                     self.handle_error()
 
         except Exception as e:
             print(f"Erro ao processar tecla: {e}")
-            
+
     def on_release(self, key):
         pass
 
@@ -233,8 +289,10 @@ class TypingGame:
         try:
             if self.sound_enabled:
                 threading.Thread(target=SoundPlayer.play_error, daemon=True).start()
-            
+
             self.game_stats['incorrect_words'] += 1
+            self.game_stats['total_words_typed'] += 1  # Contabiliza palavra digitada
+            self.game_stats['word_completed'] = True
             self.root.after(500, self.next_word)
         except Exception as e:
             print(f"Erro ao lidar com erro: {e}")
@@ -243,8 +301,10 @@ class TypingGame:
         try:
             if self.sound_enabled:
                 threading.Thread(target=SoundPlayer.play_word_correct, daemon=True).start()
-            
+
             self.game_stats['correct_words'] += 1
+            self.game_stats['total_words_typed'] += 1  # Contabiliza palavra digitada
+            self.game_stats['word_completed'] = True
             self.root.after(500, self.next_word)
         except Exception as e:
             print(f"Erro ao lidar com sucesso: {e}")
@@ -254,7 +314,9 @@ class TypingGame:
             self.game_stats['current_word_index'] += 1
             self.typed_word = ""
             self.current_index = 0
-            
+            self.accent_buffer = None
+            self.game_stats['word_completed'] = False
+
             if self.game_stats['current_word_index'] < self.game_stats['total_words']:
                 self.show_current_word()
             else:
@@ -265,52 +327,83 @@ class TypingGame:
     def end_game(self):
         try:
             self.game_stats['end_time'] = datetime.now()
-            self.game_in_progress = False # O jogo não está mais em progresso
+            self.game_in_progress = False
             self.show_game_stats()
-            
-            # Parar o listener aqui para liberar o teclado
             self.stop_listener()
-            
+
             threading.Thread(
-                target=lambda: play_audio(text_to_speech("Partida concluída. Pressione a barra de espaço para uma nova partida ou Esc para voltar ao menu principal.")),
+                target=self.announce_stats,
                 daemon=True
             ).start()
-            
-            # Reativa o listener, mas com a nova lógica
             self.setup_keyboard_listener()
 
         except Exception as e:
             print(f"Erro ao finalizar jogo: {e}")
 
+    def announce_stats(self):
+        total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
+        minutes = total_time / 60
+
+        # WPM considera TODAS as palavras digitadas (corretas + incorretas)
+        wpm = self.game_stats['total_words_typed'] / minutes if minutes > 0 else 0
+
+        levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
+        level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
+
+        accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
+
+        stats_text = (
+            f"Partida concluída! "
+            f"Nível: {level_name}. "
+            f"Palavras corretas: {self.game_stats['correct_words']} de {self.game_stats['total_words']}. "
+            f"Palavras incorretas: {self.game_stats['incorrect_words']}. "
+            f"Tempo total: {int(total_time)} segundos. "
+            f"Velocidade: {int(wpm)} palavras por minuto. "
+            f"Precisão: {int(accuracy)} por cento. "
+            f"Pressione a barra de espaço para uma nova partida ou Esc para voltar ao menu principal."
+        )
+
+        play_audio(text_to_speech(stats_text))
+
     def show_game_stats(self):
         try:
             total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
             minutes = total_time / 60
-            wpm = self.game_stats['correct_words'] / minutes if minutes > 0 else 0
-            
+
+            # WPM considera TODAS as palavras digitadas (corretas + incorretas)
+            wpm = self.game_stats['total_words_typed'] / minutes if minutes > 0 else 0
+
+            accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
+
+            levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
+            level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
+
             self.game_frame.pack_forget()
-            
             self.stats_frame.pack(expand=True, fill=tk.BOTH)
-            
+
             for widget in self.stats_frame.winfo_children():
                 widget.destroy()
-            
+
             ttk.Label(
                 self.stats_frame,
                 text="Partida Concluída!",
                 font=("Helvetica", 24),
                 foreground="white"
             ).pack(pady=20)
-            
+
             stats_text = (
+                f"Nível: {level_name}\n"
                 f"Palavras corretas: {self.game_stats['correct_words']}/{self.game_stats['total_words']}\n"
                 f"Palavras incorretas: {self.game_stats['incorrect_words']}\n"
+                f"Total de palavras digitadas: {self.game_stats['total_words_typed']}\n"
                 f"Tempo total: {total_time:.1f} segundos\n"
-                f"Velocidade: {wpm:.1f} palavras por minuto\n\n"
+                f"Velocidade: {wpm:.1f} palavras por minuto\n"
+                f"Precisão: {accuracy:.1f}%\n"
+                f"Caracteres: {self.game_stats['correct_chars']}/{self.game_stats['total_chars']}\n\n"
                 f"Pressione a barra de espaço para uma nova partida\n"
                 f"Pressione Esc para voltar ao menu"
             )
-            
+
             ttk.Label(
                 self.stats_frame,
                 text=stats_text,
@@ -321,7 +414,7 @@ class TypingGame:
             back_btn = ttk.Button(
                 self.stats_frame,
                 text="← Voltar ao Menu",
-                command=self.end_game_by_button, # Agora o botão tem sua própria função
+                command=self.end_game_by_button,
                 style="TButton"
             )
             back_btn.pack(pady=20)
@@ -329,7 +422,6 @@ class TypingGame:
             print(f"Erro ao mostrar estatísticas: {e}")
 
     def end_game_by_button(self):
-        # Esta função é chamada apenas pelo botão para garantir que a transição ocorra
         self.stop_listener()
         self.switch_to_main_menu()
 
@@ -337,16 +429,16 @@ class TypingGame:
         try:
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
             feedback_chars = []
-            
+
             for i in range(len(current_word)):
                 if i < len(self.typed_word):
                     color = CORRECT_COLOR if self.typed_word[i] == current_word[i] else ERROR_COLOR
                     feedback_chars.append((self.typed_word[i], color))
                 else:
                     feedback_chars.append(("_", TYPING_COLOR))
-            
+
             self.feedback_label.config(text=" ".join([char for char, _ in feedback_chars]))
-            
+
             if self.current_index < len(feedback_chars):
                 self.feedback_label.config(foreground=feedback_chars[self.current_index][1])
         except Exception as e:

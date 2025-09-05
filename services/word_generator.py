@@ -4,9 +4,7 @@ import sys
 
 
 def get_word_list():
-    """Load words from wordlist.txt with PyInstaller compatibility"""
     try:
-        # Get the correct path whether running normally or bundled
         if hasattr(sys, '_MEIPASS'):
             base_path = sys._MEIPASS
         else:
@@ -18,7 +16,6 @@ def get_word_list():
             return [line.strip() for line in file if line.strip()]
     except Exception as e:
         print(f"Error loading word list: {e}")
-        # Fallback words if file can't be loaded
         return ["python", "programming", "keyboard", "typing", "practice"]
 
 
@@ -27,28 +24,68 @@ def get_random_word():
     return random.choice(word_list)
 
 
-# função níveis projeto \/
 def get_word_by_level(level):
-    """
-    Retorna uma palavra de acordo com o nível selecionado
-    level: 1 (fácil), 2 (médio), 3 (difícil)
-    """
-    if level == 1:  # Fácil: palavras curtas, sem acento
-        short_words = ["casa", "bola", "gato", "rio", "sol", "mar", "pé", "lua", "mesa", "voz", 
-                      "pato", "rede", "flor", "pão", "porta", "livro", "copo", "chuva", "tempo", "vento"]
+    if level == 1:
+        short_words = [
+            "casa", "bola", "gato", "rio", "sol", "mar", "pé", "lua", "mesa", "voz",
+            "pato", "rede", "flor", "pão", "porta", "livro", "copo", "chuva", "tempo", "vento",
+            "pai", "mãe", "irmão", "irmã", "avô", "avó", "tio", "tia", "primo", "prima",
+            "cão", "rato", "pássaro", "peixe", "vaca", "boi", "cavalo", "ovelha", "cabra", "porco",
+            "lápis", "caneta", "papel", "caderno", "livro", "revista", "jornal", "quadro", "giz", "borracha",
+            "carro", "ônibus", "trem", "bicicleta", "moto", "barco", "navio", "avião", "helicóptero", "foguete",
+            "árvore", "flor", "planta", "grama", "folha", "fruta", "verdura", "legume", "semente", "raiz",
+            "escola", "casa", "rua", "praça", "parque", "praia", "montanha", "rio", "lago", "mar",
+            "sol", "lua", "estrela", "nuvem", "chuva", "vento", "neve", "tempestade", "arco-íris", "relâmpago",
+            "amigo", "amiga", "colega", "vizinho", "vizinha", "professor", "professora", "médico", "enfermeira",
+            "polícia"
+        ]
         return random.choice(short_words)
-    
-    elif level == 2:  # Médio: palavras compridas, sem acento
-        medium_words = ["computador", "janela", "cadeira", "telefone", "eletricidade", 
-                       "biblioteca", "refrigerador", "automovel", "televisao", "professor",
-                       "universidade", "experimento", "laboratorio", "parabrisas", "ventilador"]
+
+    elif level == 2:
+        medium_words = [
+            "computador", "janela", "cadeira", "telefone", "eletricidade",
+            "biblioteca", "refrigerador", "automóvel", "televisão", "professor",
+            "universidade", "experimento", "laboratório", "parabrisas", "ventilador",
+            "apartamento", "edifício", "construção", "arquitetura", "engenharia",
+            "matemática", "história", "geografia", "ciências", "literatura",
+            "música", "instrumento", "orquestra", "sinfonia", "melodia",
+            "restaurante", "cozinheiro", "garçom", "refeição", "almoço",
+            "jantar", "sobremesa", "ingrediente", "tempero", "receita",
+            "hospital", "médico", "enfermeiro", "paciente", "medicamento",
+            "cirurgia", "consulta", "exame", "diagnóstico", "tratamento",
+            "empresa", "escritório", "funcionário", "chefe", "reunião",
+            "projeto", "relatório", "apresentação", "conferência", "negócio",
+            "shopping", "loja", "mercado", "produto", "preço",
+            "desconto", "promoção", "compra", "venda", "cliente",
+            "viagem", "passagem", "hotel", "turista", "passeio",
+            "passaporte", "bagagem", "destino", "aventura", "exploração",
+            "esporte", "competição", "atleta", "treinador", "vitória",
+            "derrota", "campeonato", "medalha", "troféu", "record"
+        ]
         return random.choice(medium_words)
-    
-    elif level == 3:  # Difícil: palavras com acento
-        hard_words = ["canção", "órgão", "águia", "ímã", "útil", "pássaro", "âmbar", "ébano", 
-                     "ícone", "ópera", "écran", "úmido", "ácaro", "ésimo", "áxis", "período",
-                     "matemática", "fenômeno", "parâmetro", "estéreo", "platô", "avião", "limão"]
+
+    elif level == 3:
+        hard_words = [
+            "canção", "órgão", "águia", "ímã", "útil", "pássaro", "âmbar", "ébano",
+            "ícone", "ópera", "écran", "úmido", "ácaro", "ésimo", "áxis", "período",
+            "matemática", "fenômeno", "parâmetro", "estéreo", "platô", "avião", "limão",
+            "psicologia", "filosofia", "sociologia", "antropologia", "arqueologia",
+            "paleontologia", "astronomia", "astronáutica", "cosmologia", "meteorologia",
+            "oceanografia", "sismologia", "vulcanologia", "mineralogia", "petrología",
+            "cristalografia", "gemologia", "numismática", "filatelia", "heráldica",
+            "genealogia", "epigrafia", "papirologia", "codicológica", "biblioteconomia",
+            "arquivologia", "museologia", "restauração", "conservação", "preservação",
+            "biodiversidade", "ecossistema", "bioma", "habitat", "biotopo",
+            "fotossíntese", "respiração", "transpiração", "germinação", "polinização",
+            "fecundação", "gestação", "parturição", "lactação", "amamentação",
+            "desenvolvimento", "crescimento", "maturação", "envelhecimento", "senescência",
+            "rejuvenescimento", "regeneração", "reprodução", "multiplicação", "propagação",
+            "disseminação", "dispersão", "migração", "emigração", "imigração",
+            "colonização", "povoamento", "ocupação", "habitação", "estabelecimento",
+            "instalação", "implementação", "execução", "realização", "concretização",
+            "materialização", "efetivação", "consumação", "finalização", "terminação"
+        ]
         return random.choice(hard_words)
-    
+
     else:
         return get_random_word()  # Fallback
