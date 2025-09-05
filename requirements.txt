@@ -1,4 +1,5 @@
 gTTS
 pygame
 pynput
+keyboard
 pyinstaller

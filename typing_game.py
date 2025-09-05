@@ -1,9 +1,8 @@
 # typing_game.py
-
 import tkinter as tk
 from tkinter import font, ttk
 from pynput import keyboard
-from services.word_generator import get_random_word
+from services.word_generator import get_word_by_level
 from services.tts_service import text_to_speech
 from utils.audio_player import play_audio
 from utils.comparator import compare_words
@@ -26,17 +25,19 @@ from config import (
 )
 
 class TypingGame:
-    def __init__(self, root, switch_to_main_menu):
+    def __init__(self, root, switch_to_main_menu, level):
         self.root = root
         self.switch_to_main_menu = switch_to_main_menu
+        self.current_level = level
         self.sound_enabled = self.check_sound_support()
         self.listener = None
         self.last_key_time = 0
+        self.game_in_progress = False # Novo atributo para controlar o estado do jogo
+        
         self.setup_ui()
         self.start_new_game()
 
     def setup_window(self):
-        # Esta função não é mais necessária aqui, pois a janela é configurada no MainMenu
         pass
 
     def check_sound_support(self):
@@ -92,7 +93,6 @@ class TypingGame:
         )
         self.back_btn.pack(pady=20)
 
-
     def start_new_game(self):
         if self.listener:
             try:
@@ -110,12 +110,14 @@ class TypingGame:
             'start_time': datetime.now(),
             'end_time': None,
             'current_word_index': 0,
-            'words': [get_random_word() for _ in range(WORDS_PER_GAME)]
+            'words': [get_word_by_level(self.current_level) for _ in range(WORDS_PER_GAME)],
+            'level': self.current_level
         }
         
         self.typed_word = ""
         self.current_index = 0
         self.last_key_time = 0
+        self.game_in_progress = True # O jogo está em progresso
         self.show_current_word()
         self.setup_keyboard_listener()
 
@@ -150,12 +152,29 @@ class TypingGame:
         )
         self.listener.start()
 
+    def stop_listener(self):
+        if self.listener:
+            try:
+                self.listener.stop()
+                self.listener = None
+            except:
+                pass
+
     def on_press(self, key):
-        try:
-            if not self.game_frame.winfo_ismapped():
+        # Lógica para o final do jogo
+        if not self.game_in_progress:
+            if key == keyboard.Key.esc:
+                self.stop_listener()
+                self.switch_to_main_menu()
+                return
+            elif key == keyboard.Key.space:
+                self.stop_listener()
                 self.start_new_game()
                 return
-            
+            return # Sai da função se o jogo não estiver em progresso
+
+        # Lógica normal de digitação
+        try:
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
 
             if key == keyboard.Key.backspace:
@@ -246,14 +265,20 @@ class TypingGame:
     def end_game(self):
         try:
             self.game_stats['end_time'] = datetime.now()
+            self.game_in_progress = False # O jogo não está mais em progresso
             self.show_game_stats()
             
+            # Parar o listener aqui para liberar o teclado
+            self.stop_listener()
+            
             threading.Thread(
-                target=lambda: play_audio(text_to_speech("Partida concluída. Pressione qualquer tecla para uma nova partida.")),
+                target=lambda: play_audio(text_to_speech("Partida concluída. Pressione a barra de espaço para uma nova partida ou Esc para voltar ao menu principal.")),
                 daemon=True
             ).start()
             
+            # Reativa o listener, mas com a nova lógica
             self.setup_keyboard_listener()
+
         except Exception as e:
             print(f"Erro ao finalizar jogo: {e}")
 
@@ -282,7 +307,7 @@ class TypingGame:
                 f"Palavras incorretas: {self.game_stats['incorrect_words']}\n"
                 f"Tempo total: {total_time:.1f} segundos\n"
                 f"Velocidade: {wpm:.1f} palavras por minuto\n\n"
-                f"Pressione qualquer tecla para uma nova partida\n"
+                f"Pressione a barra de espaço para uma nova partida\n"
                 f"Pressione Esc para voltar ao menu"
             )
             
@@ -296,12 +321,17 @@ class TypingGame:
             back_btn = ttk.Button(
                 self.stats_frame,
                 text="← Voltar ao Menu",
-                command=self.switch_to_main_menu,
+                command=self.end_game_by_button, # Agora o botão tem sua própria função
                 style="TButton"
             )
             back_btn.pack(pady=20)
         except Exception as e:
             print(f"Erro ao mostrar estatísticas: {e}")
+
+    def end_game_by_button(self):
+        # Esta função é chamada apenas pelo botão para garantir que a transição ocorra
+        self.stop_listener()
+        self.switch_to_main_menu()
 
     def update_ui(self):
         try:

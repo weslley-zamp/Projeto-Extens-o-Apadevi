@@ -25,3 +25,30 @@ def get_word_list():
 def get_random_word():
     word_list = get_word_list()
     return random.choice(word_list)
+
+
+# função níveis projeto \/
+def get_word_by_level(level):
+    """
+    Retorna uma palavra de acordo com o nível selecionado
+    level: 1 (fácil), 2 (médio), 3 (difícil)
+    """
+    if level == 1:  # Fácil: palavras curtas, sem acento
+        short_words = ["casa", "bola", "gato", "rio", "sol", "mar", "pé", "lua", "mesa", "voz", 
+                      "pato", "rede", "flor", "pão", "porta", "livro", "copo", "chuva", "tempo", "vento"]
+        return random.choice(short_words)
+    
+    elif level == 2:  # Médio: palavras compridas, sem acento
+        medium_words = ["computador", "janela", "cadeira", "telefone", "eletricidade", 
+                       "biblioteca", "refrigerador", "automovel", "televisao", "professor",
+                       "universidade", "experimento", "laboratorio", "parabrisas", "ventilador"]
+        return random.choice(medium_words)
+    
+    elif level == 3:  # Difícil: palavras com acento
+        hard_words = ["canção", "órgão", "águia", "ímã", "útil", "pássaro", "âmbar", "ébano", 
+                     "ícone", "ópera", "écran", "úmido", "ácaro", "ésimo", "áxis", "período",
+                     "matemática", "fenômeno", "parâmetro", "estéreo", "platô", "avião", "limão"]
+        return random.choice(hard_words)
+    
+    else:
+        return get_random_word()  # Fallback
