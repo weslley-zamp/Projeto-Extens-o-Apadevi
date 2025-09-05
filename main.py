@@ -177,7 +177,7 @@ class MainMenu:
         self.current_frame = "main"
         title_label = ttk.Label(
             self.main_frame,
-            text="KeyEarn\nTreino de Digitação",  # \n para quebra de linha
+            text="KeyEarn\nTreino de Digitação",
             font=("Helvetica", 36, "bold"),
             foreground="white",
             background=BACKGROUND_COLOR,
