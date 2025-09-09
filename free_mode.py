@@ -53,7 +53,7 @@ class FreeModeGame:
         # Lida com teclas especiais como backspace e esc
         if event.name == 'backspace':
             self.typed_text = self.typed_text[:-1]
-            self.accent_char = None  # Limpa o acento se a tecla for backspace
+            self.accent_char = None
             self.update_ui()
             return
         elif event.name == 'esc':
@@ -70,8 +70,8 @@ class FreeModeGame:
             self.accent_char = None
             self.update_ui()
             return
-            
-        # Dicionário de acentos e suas combinações
+
+        # Dicionário de acentos
         accent_map = {
             '`': 'aáeéiíoóuú',
             '´': 'aáeéiíoóuú',
@@ -80,43 +80,55 @@ class FreeModeGame:
             '¨': 'aäeëiïoöuü'
         }
 
-        # Verifica se a tecla pressionada é um acento
+        # Trata acento
         if event.name in accent_map.keys():
             self.accent_char = event.name
-            # Não adiciona o acento ao texto ainda
             return
 
-        # Lida com caracteres de texto, incluindo acentos
+        # Pontuações que queremos ler
+        punctuation_map = {
+            '.': 'ponto',
+            ',': 'vírgula',
+            ';': 'ponto e vírgula'
+        }
+
+        # Se for pontuação
+        if event.name in punctuation_map:
+            self.typed_text += event.name
+            threading.Thread(
+                target=lambda: play_audio(text_to_speech(punctuation_map[event.name])),
+                daemon=True
+            ).start()
+            self.accent_char = None
+            self.update_ui()
+            return
+
+        # Caractere normal
         if event.name and len(event.name) == 1:
             char = event.name.lower()
-            
-            # Se houver um acento armazenado e a próxima letra for uma combinação válida
+
             if self.accent_char:
                 if char in accent_map[self.accent_char]:
-                    # Converte a letra para sua forma acentuada
                     if self.accent_char == '´':
                         char = 'áéíóú'['aeiou'.find(char)]
                     elif self.accent_char == '~':
                         char = 'ãẽĩõũ'['aeiou'.find(char)]
-                    # Adicione mais conversões para outros acentos se necessário
-                    
+                    # Adicionar outros acentos se necessário
+
                     self.typed_text += char
                     threading.Thread(
                         target=lambda: play_audio(text_to_speech(char)),
                         daemon=True
                     ).start()
                 else:
-                    # Se o acento foi digitado mas a próxima letra não é acentuável
-                    self.typed_text += self.accent_char
-                    self.typed_text += char
+                    self.typed_text += self.accent_char + char
                     threading.Thread(
                         target=lambda: play_audio(text_to_speech(self.accent_char + ' ' + char)),
                         daemon=True
                     ).start()
-                
-                self.accent_char = None # Limpa o acento após o uso
+
+                self.accent_char = None
             else:
-                # Caso de digitação normal, sem acento
                 self.typed_text += char
                 threading.Thread(
                     target=lambda: play_audio(text_to_speech(char)),
@@ -124,7 +136,6 @@ class FreeModeGame:
                 ).start()
 
             self.update_ui()
-
 
     def update_ui(self):
         self.text_label.config(text=self.typed_text)
