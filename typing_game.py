@@ -238,22 +238,22 @@ class TypingGame:
                 self.end_game()
                 return
 
-            try:
-                char = key.char
-            except AttributeError:
-                if key == keyboard.Key.space:
-                    # Verificar se a palavra está completa
-                    if len(self.typed_word) == len(current_word) and not self.game_stats['word_completed']:
-                        result = compare_words(current_word, self.typed_word)
-                        if result is None:
-                            self.handle_success()
-                        else:
-                            self.handle_error()
+            # ✅ Agora só valida quando o usuário pressiona ENTER
+            if key == keyboard.Key.enter:
+                if not self.game_stats['word_completed']:
+                    result = compare_words(current_word, self.typed_word)
+                    if result is None:
+                        self.handle_success()
                     else:
-                        # Palavra incompleta - tratar como erro
                         self.handle_error()
                 return
 
+            try:
+                char = key.char
+            except AttributeError:
+                return  # ignora outras teclas
+
+            # Tratamento de acentos
             accents = ['´', '`', '^', '~', '"']
             if char in accents:
                 self.accent_buffer = char
@@ -290,14 +290,6 @@ class TypingGame:
                     threading.Thread(target=SoundPlayer.play_error, daemon=True).start()
 
             self.update_ui()
-
-            # Verificar se a palavra está completa e ainda não foi processada
-            if len(self.typed_word) == len(current_word) and not self.game_stats['word_completed']:
-                result = compare_words(current_word, self.typed_word)
-                if result is None:
-                    self.handle_success()
-                else:
-                    self.handle_error()
 
         except Exception as e:
             print(f"Erro ao processar tecla: {e}")
