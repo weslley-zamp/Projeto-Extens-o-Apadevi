@@ -12,16 +12,8 @@ import sys
 import os
 import unicodedata
 
-from config import (
-    SoundPlayer,
-    BACKGROUND_COLOR,
-    CORRECT_COLOR,
-    ERROR_COLOR,
-    FONT_SIZE,
-    TYPING_COLOR,
-    PADDING,
-    WORDS_PER_GAME
-)
+# Agora importamos o CONFIG (dicionário) e o SoundPlayer do config.py
+from config import SoundPlayer, CONFIG
 
 
 class TypingGame:
@@ -29,6 +21,7 @@ class TypingGame:
         self.root = root
         self.switch_to_main_menu = switch_to_main_menu
         self.current_level = level
+        self.cfg = CONFIG  # copia das configurações atuais
         self.sound_enabled = self.check_sound_support()
         self.listener = None
         self.last_key_time = 0
@@ -49,32 +42,46 @@ class TypingGame:
             return False
 
     def setup_ui(self):
+        # Sempre recarrega config atualizada
+        self.cfg = CONFIG  
+
+        # Lê valores do config com defaults
+        bg = self.cfg.get("BACKGROUND_COLOR", "#2c3e50")
+        font_size = self.cfg.get("FONT_SIZE", 28)
+        padding = self.cfg.get("PADDING", 30)
+        typing_color = self.cfg.get("TYPING_COLOR", "#3498db")
+        fg_color = self.cfg.get("FOREGROUND_COLOR", "white")  # opcional
+
         style = ttk.Style()
         style.configure("TButton", font=("Helvetica", 12), padding=10)
-        style.configure("TLabel", font=("Helvetica", FONT_SIZE), background=BACKGROUND_COLOR)
-        style.configure("Stats.TLabel", font=("Helvetica", 14), background=BACKGROUND_COLOR)
+        style.configure("TLabel", font=("Helvetica", font_size), background=bg)
+        style.configure("Stats.TLabel", font=("Helvetica", 14), background=bg)
 
-        self.main_frame = tk.Frame(self.root, bg=BACKGROUND_COLOR, padx=PADDING, pady=PADDING)
+        # Janela principal do jogo
+        self.main_frame = tk.Frame(self.root, bg=bg, padx=padding, pady=padding)
         self.main_frame.pack(expand=True, fill=tk.BOTH)
 
-        self.game_frame = tk.Frame(self.main_frame, bg=BACKGROUND_COLOR)
+        self.game_frame = tk.Frame(self.main_frame, bg=bg)
         self.game_frame.pack(expand=True, fill=tk.BOTH)
 
-        self.stats_frame = tk.Frame(self.main_frame, bg=BACKGROUND_COLOR)
+        self.stats_frame = tk.Frame(self.main_frame, bg=bg)
 
+        # Rótulos principais
         self.word_label = ttk.Label(
             self.game_frame,
             text="",
-            font=("Helvetica", FONT_SIZE),
-            foreground="white"
+            font=("Helvetica", font_size),
+            foreground=fg_color,
+            background=bg
         )
         self.word_label.pack(pady=20)
 
         self.feedback_label = ttk.Label(
             self.game_frame,
             text="",
-            font=("Helvetica", FONT_SIZE),
-            foreground=TYPING_COLOR
+            font=("Helvetica", font_size),
+            foreground=typing_color,
+            background=bg
         )
         self.feedback_label.pack(pady=20)
 
@@ -82,7 +89,8 @@ class TypingGame:
             self.game_frame,
             text="Palavra 1/30",
             font=("Helvetica", 14),
-            foreground="#bdc3c7"
+            foreground=self.cfg.get("PROGRESS_COLOR", "#bdc3c7"),
+            background=bg
         )
         self.progress_label.pack()
 
@@ -95,6 +103,10 @@ class TypingGame:
         self.back_btn.pack(pady=20)
 
     def start_new_game(self):
+        # Recarrega configuração no início da partida (caso tenha mudado)
+        self.cfg = CONFIG  
+        WORDS_PER_GAME = self.cfg.get("WORDS_PER_GAME", 30)
+
         if self.listener:
             try:
                 self.listener.stop()
@@ -131,11 +143,15 @@ class TypingGame:
         try:
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
             self.word_label.config(text=current_word)
+
+            # atualiza preview do feedback usando _ por cada letra
             self.feedback_label.config(text=" ".join("_" * len(current_word)))
+
             self.progress_label.config(
                 text=f"Palavra {self.game_stats['current_word_index'] + 1}/{self.game_stats['total_words']}"
             )
 
+            # TTS da palavra
             threading.Thread(
                 target=lambda: play_audio(text_to_speech(f"A palavra é: {current_word}")),
                 daemon=True
@@ -261,6 +277,10 @@ class TypingGame:
             self.current_index = len(self.typed_word) - 1
 
             self.game_stats['total_chars'] += 1
+            # pega cores atuais do config
+            correct_color = CONFIG.get("CORRECT_COLOR", "#27ae60")
+            error_color = CONFIG.get("ERROR_COLOR", "#e74c3c")
+
             if self.current_index < len(current_word) and self.typed_word[-1] == current_word[self.current_index]:
                 self.game_stats['correct_chars'] += 1
                 if self.sound_enabled:
@@ -367,28 +387,24 @@ class TypingGame:
 
     def show_game_stats(self):
         try:
+            self.cfg = CONFIG  
             total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
             minutes = total_time / 60
-
-            # WPM considera TODAS as palavras digitadas (corretas + incorretas)
             wpm = self.game_stats['total_words_typed'] / minutes if minutes > 0 else 0
-
             accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
-
             levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
             level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
-
             self.game_frame.pack_forget()
             self.stats_frame.pack(expand=True, fill=tk.BOTH)
-
             for widget in self.stats_frame.winfo_children():
                 widget.destroy()
-
+                
             ttk.Label(
                 self.stats_frame,
                 text="Partida Concluída!",
                 font=("Helvetica", 24),
-                foreground="white"
+                foreground=self.cfg.get("FOREGROUND_COLOR", "white"),
+                background=self.cfg.get("BACKGROUND_COLOR", "#2c3e50")
             ).pack(pady=20)
 
             stats_text = (
@@ -427,19 +443,23 @@ class TypingGame:
 
     def update_ui(self):
         try:
+            self.cfg = CONFIG  
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
             feedback_chars = []
-
+            correct_color = self.cfg.get("CORRECT_COLOR", "#27ae60")
+            error_color = self.cfg.get("ERROR_COLOR", "#e74c3c")
+            typing_color = self.cfg.get("TYPING_COLOR", "#3498db")
             for i in range(len(current_word)):
                 if i < len(self.typed_word):
-                    color = CORRECT_COLOR if self.typed_word[i] == current_word[i] else ERROR_COLOR
+                    color = correct_color if self.typed_word[i] == current_word[i] else error_color
                     feedback_chars.append((self.typed_word[i], color))
                 else:
-                    feedback_chars.append(("_", TYPING_COLOR))
-
+                    feedback_chars.append(("_", typing_color))
             self.feedback_label.config(text=" ".join([char for char, _ in feedback_chars]))
 
             if self.current_index < len(feedback_chars):
                 self.feedback_label.config(foreground=feedback_chars[self.current_index][1])
+            else:
+                self.feedback_label.config(foreground=typing_color)
         except Exception as e:
             print(f"Erro ao atualizar interface: {e}")
