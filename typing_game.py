@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import font, ttk
 from pynput import keyboard
-from services.word_generator import get_word_by_level
+# <--- ALTERAÇÃO 1: Importar a nova função 'start_new_game_words' ---
+from services.word_generator import get_word_by_level, start_new_game_words
 from services.tts_service import text_to_speech
 from utils.audio_player import play_audio
 from utils.comparator import compare_words
@@ -107,6 +108,9 @@ class TypingGame:
         self.cfg = CONFIG  
         WORDS_PER_GAME = self.cfg.get("WORDS_PER_GAME", 30)
 
+        # <--- ALTERAÇÃO 2: Chamar a função para resetar a lista de palavras ---
+        start_new_game_words()
+
         if self.listener:
             try:
                 self.listener.stop()
@@ -128,7 +132,7 @@ class TypingGame:
             'total_chars': 0,
             'correct_chars': 0,
             'word_completed': False,
-            'total_words_typed': 0  # Nova métrica: total de palavras digitadas
+            'total_words_typed': 0
         }
 
         self.typed_word = ""
@@ -303,7 +307,7 @@ class TypingGame:
                 threading.Thread(target=SoundPlayer.play_error, daemon=True).start()
 
             self.game_stats['incorrect_words'] += 1
-            self.game_stats['total_words_typed'] += 1  # Contabiliza palavra digitada
+            self.game_stats['total_words_typed'] += 1
             self.game_stats['word_completed'] = True
             self.root.after(500, self.next_word)
         except Exception as e:
@@ -315,7 +319,7 @@ class TypingGame:
                 threading.Thread(target=SoundPlayer.play_word_correct, daemon=True).start()
 
             self.game_stats['correct_words'] += 1
-            self.game_stats['total_words_typed'] += 1  # Contabiliza palavra digitada
+            self.game_stats['total_words_typed'] += 1
             self.game_stats['word_completed'] = True
             self.root.after(500, self.next_word)
         except Exception as e:
@@ -355,13 +359,9 @@ class TypingGame:
     def announce_stats(self):
         total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
         minutes = total_time / 60
-
-        # WPM considera TODAS as palavras digitadas (corretas + incorretas)
         wpm = self.game_stats['total_words_typed'] / minutes if minutes > 0 else 0
-
         levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
         level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
-
         accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
 
         stats_text = (
@@ -374,7 +374,6 @@ class TypingGame:
             f"Precisão: {int(accuracy)} por cento. "
             f"Pressione a barra de espaço para uma nova partida ou Esc para voltar ao menu principal."
         )
-
         play_audio(text_to_speech(stats_text))
 
     def show_game_stats(self):

@@ -60,7 +60,7 @@ class FreeModeGame:
         # Lida com teclas especiais como backspace e esc
         if event.name == 'backspace':
             self.typed_text = self.typed_text[:-1]
-            self.accent_char = None  # Limpa o acento se a tecla for backspace
+            self.accent_char = None
             self.update_ui()
             return
         elif event.name == 'esc':
@@ -77,8 +77,8 @@ class FreeModeGame:
             self.accent_char = None
             self.update_ui()
             return
-            
-        # Dicionário de acentos e suas combinações
+
+        # Dicionário de acentos
         accent_map = {
             '`': 'aáeéiíoóuú',
             '´': 'aáeéiíoóuú',
@@ -87,12 +87,30 @@ class FreeModeGame:
             '¨': 'aäeëiïoöuü'
         }
 
-        # Verifica se a tecla pressionada é um acento
+        # Trata acento
         if event.name in accent_map.keys():
             self.accent_char = event.name
             return
 
-        # Lida com caracteres de texto, incluindo acentos
+        # Pontuações que queremos ler
+        punctuation_map = {
+            '.': 'ponto',
+            ',': 'vírgula',
+            ';': 'ponto e vírgula'
+        }
+
+        # Se for pontuação
+        if event.name in punctuation_map:
+            self.typed_text += event.name
+            threading.Thread(
+                target=lambda: play_audio(text_to_speech(punctuation_map[event.name])),
+                daemon=True
+            ).start()
+            self.accent_char = None
+            self.update_ui()
+            return
+
+        # Caractere normal
         if event.name and len(event.name) == 1:
             char = event.name.lower()
             
@@ -109,8 +127,7 @@ class FreeModeGame:
                         daemon=True
                     ).start()
                 else:
-                    self.typed_text += self.accent_char
-                    self.typed_text += char
+                    self.typed_text += self.accent_char + char
                     threading.Thread(
                         target=lambda: play_audio(text_to_speech(self.accent_char + ' ' + char)),
                         daemon=True
