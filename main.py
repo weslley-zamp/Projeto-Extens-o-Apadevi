@@ -7,6 +7,7 @@ import threading
 
 from typing_game import TypingGame
 from free_mode import FreeModeGame
+from ranking_screen import RankingScreen  # 👈 Import da tela de ranking
 
 from config import (
     load_config,
@@ -27,7 +28,7 @@ class MainMenu:
         self.listener = None
         self.current_selection = 0
         self.level_selection = 0
-        self.menu_options = ["Modo Jogo Padrão", "Modo Jogo Livre", "Configurações"]
+        self.menu_options = ["Modo Jogo Padrão", "Modo Jogo Livre", "Ranking", "Configurações"]  # 👈 Adicionado Ranking
         self.level_options = ["Fácil", "Médio", "Difícil", "Voltar"]
         self.current_frame = None
 
@@ -104,6 +105,8 @@ class MainMenu:
                         self.show_level_selection()
                     elif self.current_selection == 1:
                         self.start_free_mode()
+                    elif self.current_selection == 2:
+                        self.show_ranking()  # 👈 Ação para abrir o ranking
                     else:
                         self.open_settings()
 
@@ -214,6 +217,8 @@ class MainMenu:
             self.show_level_selection()
         elif option == "Modo Jogo Livre":
             self.start_free_mode()
+        elif option == "Ranking":
+            self.show_ranking()  # 👈 Abre a tela de ranking
         elif option == "Configurações":
             self.open_settings()
 
@@ -223,6 +228,11 @@ class MainMenu:
                 button.configure(style="Selected.TButton")
             else:
                 button.configure(style="TButton")
+
+    def show_ranking(self):
+        self.main_frame.destroy()
+        self.current_frame = "ranking"
+        RankingScreen(self.root, self.show_main_menu)  # 👈 Cria a tela de ranking
 
     def show_level_selection(self):
         self.main_frame.destroy()
@@ -323,8 +333,6 @@ class MainMenu:
         self.entries = {}
 
         # ========== CAMPOS ==========
-
-        # Cor de fundo
         tk.Label(
             self.settings_frame,
             text="Cor de fundo:",
@@ -337,7 +345,6 @@ class MainMenu:
         bg_combo.pack(fill="x", pady=5)
         self.entries["BACKGROUND_COLOR"] = bg_combo
 
-        # Cor da letra
         tk.Label(
             self.settings_frame,
             text="Cor da letra:",
@@ -350,7 +357,6 @@ class MainMenu:
         fg_combo.pack(fill="x", pady=5)
         self.entries["FOREGROUND_COLOR"] = fg_combo
 
-        # Tamanho da fonte
         tk.Label(
             self.settings_frame,
             text="Tamanho da fonte:",
@@ -363,7 +369,6 @@ class MainMenu:
         size_combo.pack(fill="x", pady=5)
         self.entries["FONT_SIZE"] = size_combo
 
-        # Botões
         buttons_frame = tk.Frame(self.settings_frame, bg=bg_hex)
         buttons_frame.pack(pady=15)
 

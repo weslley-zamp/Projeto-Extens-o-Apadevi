@@ -1,0 +1,15 @@
+{
+    "Fácil": [
+        {
+            "player": "Teste",
+            "time": 1
+        }
+    ],
+    "Médio": [
+        {
+            "player": "Teste",
+            "time": 1.19
+        }
+    ],
+    "Difícil": []
+}

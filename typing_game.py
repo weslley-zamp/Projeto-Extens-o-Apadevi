@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import font, ttk
+from tkinter import font, ttk, simpledialog
 from pynput import keyboard
 # <--- ALTERAÇÃO 1: Importar a nova função 'start_new_game_words' ---
 from services.word_generator import get_word_by_level, start_new_game_words
@@ -14,7 +14,19 @@ import os
 import unicodedata
 
 # Agora importamos o CONFIG (dicionário) e o SoundPlayer do config.py
-from config import SoundPlayer, CONFIG
+# Também importamos contrast_text_color para definirmos a cor do texto do botão dinamicamente
+from config import SoundPlayer, CONFIG, contrast_text_color
+
+# Tenta importar o módulo de ranking (se existir). Se não, define stubs seguros.
+try:
+    from ranking import add_score, load_ranking
+except ImportError:
+    def add_score(level_name, player_name, minutes):
+        # fallback: apenas imprime (não falha)
+        print(f"[ranking] add_score não disponível — {level_name} {player_name} {minutes:.2f} min")
+
+    def load_ranking():
+        return {}
 
 
 class TypingGame:
@@ -346,11 +358,6 @@ class TypingGame:
             self.game_in_progress = False
             self.show_game_stats()
             self.stop_listener()
-
-            threading.Thread(
-                target=self.announce_stats,
-                daemon=True
-            ).start()
             self.setup_keyboard_listener()
 
         except Exception as e:
@@ -380,16 +387,20 @@ class TypingGame:
         try:
             self.cfg = CONFIG  
             total_time = (self.game_stats['end_time'] - self.game_stats['start_time']).total_seconds()
-            minutes = total_time / 60
-            wpm = self.game_stats['total_words_typed'] / minutes if minutes > 0 else 0
+            minutes = int(total_time // 60)
+            seconds = int(total_time % 60)
+            total_minutes_float = total_time / 60.0
+            wpm = self.game_stats['total_words_typed'] / total_minutes_float if total_minutes_float > 0 else 0
             accuracy = (self.game_stats['correct_chars'] / self.game_stats['total_chars'] * 100) if self.game_stats['total_chars'] > 0 else 0
             levels = {1: "Fácil", 2: "Médio", 3: "Difícil"}
             level_name = levels.get(self.game_stats.get('level', 1), "Fácil")
+
+            # ---------- MOSTRA AS ESTATÍSTICAS NA TELA PRIMEIRO ----------
             self.game_frame.pack_forget()
             self.stats_frame.pack(expand=True, fill=tk.BOTH)
             for widget in self.stats_frame.winfo_children():
                 widget.destroy()
-                
+
             ttk.Label(
                 self.stats_frame,
                 text="Partida Concluída!",
@@ -403,7 +414,7 @@ class TypingGame:
                 f"Palavras corretas: {self.game_stats['correct_words']}/{self.game_stats['total_words']}\n"
                 f"Palavras incorretas: {self.game_stats['incorrect_words']}\n"
                 f"Total de palavras digitadas: {self.game_stats['total_words_typed']}\n"
-                f"Tempo total: {total_time:.1f} segundos\n"
+                f"Tempo total: {minutes} min {seconds} s\n"
                 f"Velocidade: {wpm:.1f} palavras por minuto\n"
                 f"Precisão: {accuracy:.1f}%\n"
                 f"Caracteres: {self.game_stats['correct_chars']}/{self.game_stats['total_chars']}\n\n"
@@ -418,13 +429,80 @@ class TypingGame:
                 justify=tk.LEFT
             ).pack(pady=20)
 
-            back_btn = ttk.Button(
+            # ---------- PEDE O NOME DO JOGADOR (TTS + DIALOG) ----------
+            try:
+                # fala instrução (thread para não bloquear)
+                threading.Thread(
+                    target=lambda: play_audio(text_to_speech("Para salvar no ranking, digite seu nome agora. Se não digitar, usarei o nome do sistema.")),
+                    daemon=True
+                ).start()
+
+                # pergunta (aparece sobre a janela já empacotada)
+                player_name = simpledialog.askstring(
+                    "Nome do Jogador",
+                    "Digite seu nome para salvar no ranking (ou cancele):",
+                    parent=self.root
+                )
+
+                if not player_name or player_name.strip() == "":
+                    # tenta pegar nome do sistema, senão "Anônimo"
+                    player_name = os.getenv("USERNAME") or os.getenv("USER") or "Anônimo"
+
+                # adiciona ao ranking com MINUTOS (float)
+                try:
+                    add_score(level_name, player_name, total_minutes_float)
+                    threading.Thread(target=lambda: play_audio(text_to_speech(f"Nome {player_name} salvo no ranking.")), daemon=True).start()
+                except Exception as e:
+                    print(f"Erro ao adicionar ao ranking: {e}")
+
+            except Exception as e:
+                print(f"Erro ao pedir nome do jogador: {e}")
+
+            # ---------- EXIBE O RANKING DO NÍVEL (Top 10) ----------
+            ttk.Label(
+                self.stats_frame,
+                text=f"🏆 Ranking - {level_name} (Top 10)",
+                font=("Helvetica", 18, "bold"),
+                foreground=self.cfg.get("FOREGROUND_COLOR", "white"),
+                background=self.cfg.get("BACKGROUND_COLOR", "#2c3e50")
+            ).pack(pady=10)
+
+            try:
+                ranking = load_ranking().get(level_name, [])
+                # ranking expected: list of dicts with keys ['player','time'] where time is minutes (float)
+                for idx, entry in enumerate(ranking[:10], 1):
+                    player = entry.get("player", "Jogador")
+                    time_min = entry.get("time", 0.0)
+                    ttk.Label(
+                        self.stats_frame,
+                        text=f"{idx}. {player} - {time_min:.2f} min",
+                        font=("Helvetica", 12),
+                        foreground=self.cfg.get("FOREGROUND_COLOR", "white"),
+                        background=self.cfg.get("BACKGROUND_COLOR", "#2c3e50"),
+                        justify=tk.LEFT
+                    ).pack(anchor="w", padx=10)
+            except Exception as e:
+                print(f"Erro ao carregar ranking: {e}")
+
+            # ---------- BOTÃO VOLTAR (com cores controladas pelo config) ----------
+            btn_bg = self.cfg.get("PROGRESS_COLOR", "#bdc3c7")
+            # contrast_text_color espera um hex; CONFIG deve possuir hex aqui
+            try:
+                btn_fg = contrast_text_color(self.cfg.get("PROGRESS_COLOR", "#bdc3c7"))
+            except Exception:
+                btn_fg = "black"
+
+            back_btn = tk.Button(
                 self.stats_frame,
                 text="← Voltar ao Menu",
                 command=self.end_game_by_button,
-                style="TButton"
+                bg=btn_bg,
+                fg=btn_fg,
+                padx=10,
+                pady=6
             )
             back_btn.pack(pady=20)
+
         except Exception as e:
             print(f"Erro ao mostrar estatísticas: {e}")
 
@@ -437,20 +515,27 @@ class TypingGame:
             self.cfg = CONFIG  
             current_word = self.game_stats['words'][self.game_stats['current_word_index']]
             feedback_chars = []
+
+            # pega cores atuais do config
             correct_color = self.cfg.get("CORRECT_COLOR", "#27ae60")
             error_color = self.cfg.get("ERROR_COLOR", "#e74c3c")
             typing_color = self.cfg.get("TYPING_COLOR", "#3498db")
+            bg = self.cfg.get("BACKGROUND_COLOR", "#2c3e50")
+
             for i in range(len(current_word)):
                 if i < len(self.typed_word):
-                    color = correct_color if self.typed_word[i] == current_word[i] else error_color
-                    feedback_chars.append((self.typed_word[i], color))
+                    if self.typed_word[i] == current_word[i]:
+                        feedback_chars.append(f"✓")
+                    else:
+                        feedback_chars.append(f"✗")
                 else:
-                    feedback_chars.append(("_", typing_color))
-            self.feedback_label.config(text=" ".join([char for char, _ in feedback_chars]))
+                    feedback_chars.append("_")
 
-            if self.current_index < len(feedback_chars):
-                self.feedback_label.config(foreground=feedback_chars[self.current_index][1])
-            else:
-                self.feedback_label.config(foreground=typing_color)
+            self.feedback_label.config(
+                text=" ".join(feedback_chars),
+                foreground=typing_color,
+                background=bg
+            )
+
         except Exception as e:
-            print(f"Erro ao atualizar interface: {e}")
+            print(f"Erro ao atualizar UI: {e}")
